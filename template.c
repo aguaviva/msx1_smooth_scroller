@@ -279,19 +279,72 @@ unsigned char g_patterns[8*PATTERN_SIZE];
 unsigned char g_table_names[32*NAME_ROWS]; 
 unsigned char *g_p_table_names = g_table_names;
 unsigned char g_offset_l=0;
+unsigned char g_offset_l_times_3=0;
 unsigned int  g_offset_h=0;
 
+#define TRACK_USED_TILES
+#define CACHE_ROTATIONS
+
+#ifdef CACHE_ROTATIONS
+unsigned char rotated_tiles_cache[8][8*PATTERN_SIZE];
+
+void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  *dptr, u8 offset)
+{
+    unsigned char offset1 = offset;    
+    unsigned char offset2 = 8-offset;    
+
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);
+    *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);   
+}
+
+void cache_rotations_generate(u8 index)
+{    
+    for(u8 i=0;i<8;i++)
+    {
+        unsigned char *pchar1 =  s_tiles + tile_pairs[index].a*8;    
+        unsigned char *pchar2 =  s_tiles + tile_pairs[index].b*8; 
+        unsigned char *dptr   =  &rotated_tiles_cache[i][index*8];       
+    
+        rotate_blocks(pchar1, pchar2, dptr, i);
+    }
+}
+#endif
+
+
+#ifdef TRACK_USED_TILES
+unsigned char tile_references[PATTERN_SIZE];
+
+void tile_add_ref()
+{
+    #ifdef CACHE_ROTATIONS
+    if (tile_references[*g_p_table_names]==0)
+        cache_rotations_generate(*g_p_table_names-1);
+    #endif
+
+    tile_references[*g_p_table_names]++;
+}
+
+void tile_release_ref()
+{
+    tile_references[*g_p_table_names]--;
+}
+#endif
 
 void set_offset(unsigned int offset)
 {
     g_offset_h = offset / 8;
-
-#if USE_ASM == 0
     g_offset_l = (offset & 7);
-#else    
-    g_offset_l = (offset & 7)*3;
+#if USE_ASM == 1
+    g_offset_l_times_3 = (offset & 7)*3;
 #endif    
 }
+
 
 //
 // This code scrolls just one tile, this function is not used in this sample but I left it here as a reference as it might help understand more code below
@@ -403,7 +456,7 @@ void scroll_single_tile(unsigned char p1, unsigned char p2, unsigned char  dest)
     
     ld hl, #scroll_nexty
     
-    ld a, (#_g_offset_l)
+    ld a, (#_g_offset_l_times_3)
     
     add a,l
     ld l,a
@@ -425,35 +478,35 @@ scroll_nexty:
 scroll_shift_0:
     pop hl
     scroll_SHIFT 0
-    jp done
+    jp scroll_done
 scroll_shift_1:
     pop hl
     scroll_SHIFT 1
-    jp done
+    jp scroll_done
 scroll_shift_2:
     pop hl
     scroll_SHIFT 2
-    jp done
+    jp scroll_done
 scroll_shift_3:
     pop hl
     scroll_SHIFT 3
-    jp done
+    jp scroll_done
 scroll_shift_4:
     pop hl
     scroll_SHIFT 4
-    jp done
+    jp scroll_done
 scroll_shift_5:
     pop hl
     scroll_SHIFT 5
-    jp done
+    jp scroll_done
 scroll_shift_6:
     pop hl
     scroll_SHIFT 6
-    jp done
+    jp scroll_done
 scroll_shift_7:
     pop hl
     scroll_SHIFT 7
-    jp done    
+    jp scroll_done    
 scroll_done:    
     pop	ix    
   __endasm;
@@ -512,18 +565,21 @@ vdp_write_wrt16_exit_loop:
 }
 
 
-void VDP_write_block_16K(const u8* src, u8 count) __sdcccall(1)
+void VDP_write_block_16K(u8 count, const u8* src) __sdcccall(1)
 {
 	src, count;
 	__asm
-		ld		c, #P_VDP_DATA	      
 
 		//exit if count is 0
         or a
         jr z, vdp_exit_loop 
         
-        // Fast loop	
         ld		b, a				// count
+
+		ld		c, #P_VDP_DATA	      
+        ex      de, hl
+        
+        // Fast loop	       
 	write_block_wrt16_loop_start:
         .rept 8            
 		outi							// out(c) ; hl++ ; b--
@@ -552,7 +608,7 @@ void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
     {
         if ((a==tile_pairs[i].a) && (b==tile_pairs[i].b))
         {             
-            g_p_table_names[o]=i+1;
+            *g_p_table_names=i+1;
             return;
         }
     }
@@ -562,7 +618,7 @@ void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
     
     g_tile_pairs_size++;
     
-    g_p_table_names[o]=i+1;                
+    *g_p_table_names=i+1;                
 #else
     __asm
     ld d, a           ; a
@@ -620,6 +676,10 @@ foundit:
 
 void scroll_patterns()
 {
+    #ifdef CACHE_ROTATIONS
+    return;
+    #endif
+
 #if USE_ASM == 0
     for(unsigned char i=0;i<g_tile_pairs_size;i++)
     {
@@ -671,7 +731,7 @@ void scroll_patterns()
 
     ld hl, #nexty
     
-    ld a, (#_g_offset_l)
+    ld a, (#_g_offset_l_times_3)
 
     add a,l
     ld l,a
@@ -803,8 +863,6 @@ exit:
 #endif    
 }
 
-
-
 ////////////////////////////// 16x16 tiles
 
 inline unsigned char get_data(const unsigned char * level, unsigned char x, unsigned char y) 
@@ -826,7 +884,13 @@ void scroll_level_meta(const unsigned char * level)
         {
             unsigned char a,b;
             get_meta(level, o + g_offset_h, y*2, &a, &b);
+
             track_tile_pairs(a, b);
+            
+            #ifdef TRACK_USED_TILES
+            tile_add_ref();
+            #endif 
+            
             g_p_table_names++;
         }
     }        
@@ -841,7 +905,7 @@ void update_vram_names()
     for (u8 i = 0; i< NAME_ROWS;i++)
     {   
         #ifdef SAFE_SCROLL
-        VDP_write_block_16K(dest, 32);
+        VDP_write_block_16K(32, dest);
         #else
         unsigned char n = ((u8)g_offset_h) & 31;
         VDP_write_16K(32-n, dest + n);
@@ -854,7 +918,11 @@ void update_vram_names()
 void update_vram_patterns()
 {
     VDP_set_vram_dest_16K(g_ScreenPatternLow + 8);
+    #ifdef CACHE_ROTATIONS
+    VDP_write_block_16K(g_tile_pairs_size*8, rotated_tiles_cache[g_offset_l]);
+    #else
     VDP_write_block_16K(g_patterns, g_tile_pairs_size*8);    
+    #endif
 }
 
 void update_all_frame()
@@ -893,8 +961,18 @@ void update_right_column()
         unsigned char a,b;
         get_meta(s_levels[y/2], g_offset_h + 31, (y&1)*2, &a, &b);
         
+        #ifdef TRACK_USED_TILES
+        tile_release_ref();
+        #endif             
+        
         track_tile_pairs(a, b);        
+        
+        #ifdef TRACK_USED_TILES
+        tile_add_ref();
+        #endif         
+        
         g_p_table_names+=32;
+                
     }         
 }
 
@@ -917,7 +995,17 @@ void update_left_column()
         unsigned char a,b;
         get_meta(s_levels[y/2], g_offset_h, (y&1)*2, &a, &b);
                
+        #ifdef TRACK_USED_TILES
+        tile_release_ref();
+        #endif        
+
         track_tile_pairs(a, b);        
+
+        #ifdef TRACK_USED_TILES
+        tile_add_ref();
+        #endif        
+
+
         g_p_table_names+=32;
     }         
 }
@@ -926,8 +1014,6 @@ void update_left_column()
 //=============================================================================
 // MAIN LOOP
 //=============================================================================
-#include "font\font_mgl_std0.h"
-
 //-----------------------------------------------------------------------------
 /// Program entry point
 void main()
@@ -942,10 +1028,17 @@ void main()
     VDP_RegWrite(3, 0x9f); g_ScreenColorLow    = 0x2000;
     VDP_RegWrite(4, 0x00); 
     
-    Print_SetTextFont(g_Font_MGL_Std0, 1);
+    Print_SetTextFont(PRINT_DEFAULT_FONT, 1);
         
     unsigned int offset = 0;
     signed char offset8 = 0;
+    bool show_debug = false;
+
+    #ifdef TRACK_USED_TILES
+    for(u8 i=0;i<32;i++)
+        tile_references[i]=0;
+    #endif
+
 
     set_offset(offset);
     update_all_frame();
@@ -975,10 +1068,28 @@ void main()
                 update_left_column();
             }
         }
+
+        if(Keyboard_IsKeyPressed(KEY_D))
+        {
+            show_debug=!show_debug;
+        }
         
         scroll_patterns();       
+        
+        
         Halt();
         update_vram_patterns();
         update_vram_names();    
+        
+        if (show_debug)
+        {
+            Print_SetPosition(0, 0);
+            for(u8 i=1;i<32;i++)
+            {
+                Print_DrawInt(tile_references[i]); Print_DrawChar((char)(i+1));
+            }
+        }
+        
    }
 }
+
