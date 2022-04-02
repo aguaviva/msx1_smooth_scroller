@@ -210,6 +210,7 @@ const unsigned char s_tiles[] =
 	0b11000000,
 
     // flag
+
 	0b10101010,
 	0b01010101,
 	0b00101010,
@@ -266,12 +267,19 @@ const unsigned char s_level6[] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
 
 const unsigned char *s_levels[] = {s_level0, s_level1, s_level2, s_level3, s_level4, s_level5, s_level6, s_level6 };
 
+//#define REALLOC_TILE_SLOTS
+#define TRACK_TILE_REF_COUNT
+#define CACHE_ROTATIONS
+
 struct SEQ 
 { 
+#ifdef TRACK_TILE_REF_COUNT
+    unsigned char ref;
+#endif    
     unsigned char a, b; 
 };
 
-#define PATTERN_SIZE 36
+#define PATTERN_SIZE 32   // can't make it bigger due 8bit math :/
 #define NAME_ROWS 16
 unsigned char g_tile_pairs_size = 0;
 struct SEQ tile_pairs[PATTERN_SIZE];
@@ -282,8 +290,6 @@ unsigned char g_offset_l=0;
 unsigned char g_offset_l_times_3=0;
 unsigned int  g_offset_h=0;
 
-#define TRACK_USED_TILES
-#define CACHE_ROTATIONS
 
 #ifdef CACHE_ROTATIONS
 unsigned char rotated_tiles_cache[8][8*PATTERN_SIZE];
@@ -303,37 +309,50 @@ void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  
     *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);   
 }
 
-void cache_rotations_generate(u8 index)
+void cache_rotations_generate(u8 slot)
 {    
     for(u8 i=0;i<8;i++)
     {
-        unsigned char *pchar1 =  s_tiles + tile_pairs[index].a*8;    
-        unsigned char *pchar2 =  s_tiles + tile_pairs[index].b*8; 
-        unsigned char *dptr   =  &rotated_tiles_cache[i][index*8];       
+        unsigned char *pchar1 =  s_tiles + tile_pairs[slot].a*8;    
+        unsigned char *pchar2 =  s_tiles + tile_pairs[slot].b*8; 
+        unsigned char *dptr   =  &rotated_tiles_cache[i][slot*8];       
     
         rotate_blocks(pchar1, pchar2, dptr, i);
     }
 }
 #endif
 
+#ifdef REALLOC_TILE_SLOTS
+unsigned char tile_allocated_size=0;
+unsigned char tile_available_size=0;
+unsigned char tile_available[PATTERN_SIZE];
+unsigned char tile_used[PATTERN_SIZE];
 
-#ifdef TRACK_USED_TILES
-unsigned char tile_references[PATTERN_SIZE];
-
-void tile_add_ref()
+void tile_init_reallocs()
 {
-    #ifdef CACHE_ROTATIONS
-    if (tile_references[*g_p_table_names]==0)
-        cache_rotations_generate(*g_p_table_names-1);
-    #endif
-
-    tile_references[*g_p_table_names]++;
+    for(u8 i=0;i<PATTERN_SIZE;i++)
+    {
+        tile_available[i] = (PATTERN_SIZE-1)-i;
+    }
+    
+    tile_available_size = PATTERN_SIZE;
+    tile_allocated_size = 0;
 }
 
-void tile_release_ref()
-{
-    tile_references[*g_p_table_names]--;
+u8 tile_alloc()
+{    
+    tile_available_size--;
+    tile_allocated_size++;
+    return tile_available[tile_available_size];
 }
+
+void tile_free(u8 tile_id)
+{
+    tile_available[tile_available_size] = tile_id;
+    tile_available_size++;
+    tile_allocated_size--;        
+}
+
 #endif
 
 void set_offset(unsigned int offset)
@@ -344,7 +363,6 @@ void set_offset(unsigned int offset)
     g_offset_l_times_3 = (offset & 7)*3;
 #endif    
 }
-
 
 //
 // This code scrolls just one tile, this function is not used in this sample but I left it here as a reference as it might help understand more code below
@@ -513,7 +531,6 @@ scroll_done:
 #endif
 }
 
-
 // 98h
 #define P_VDP_0			0x98			///< Primary MSX port for VDP port #0
 #define P_VDP_DATA		P_VDP_0			///< VRAM data port (read/write)
@@ -522,8 +539,7 @@ scroll_done:
 #define P_VDP_1			0x99			///< Primary MSX port for VDP port #1
 #define P_VDP_REG		P_VDP_1			///< Register setup port (write) (bit 7=1 in second write)
 #define P_VDP_ADDR		P_VDP_1			///< VRAM address port (write) (bit 7=0 in second write, bit 6: read/write access (0=read, 1=write))
-
-#define F_VDP_WRIT	0x40
+#define F_VDP_WRIT	    0x40
 
 void VDP_set_vram_dest_16K(u16 dest) __sdcccall(1)
 {
@@ -591,33 +607,45 @@ vdp_exit_loop:
 	__endasm;
 }
 
-
-
-void begin_frame()
-{
-    g_tile_pairs_size = 0;
-}
-
 void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
 {
-#if USE_ASM == 0
-    // check if we have alerady computed that pattern 
-    // TODO: remove tiles that are not present in the screen, that reduces the number of tiles to scroll
+#if USE_ASM == 1
+    // check if we have already computed that pattern 
     unsigned char i=0;
     for(;i<g_tile_pairs_size;i++)
     {
         if ((a==tile_pairs[i].a) && (b==tile_pairs[i].b))
-        {             
-            *g_p_table_names=i+1;
-            return;
+        {                     
+        #ifdef TRACK_TILE_REF_COUNT
+            tile_pairs[i].ref++;
+        #endif    
+            goto foundit;
         }
     }
 
+    //allocate new pair
+    
+#ifdef REALLOC_TILE_SLOTS
+    //g_tile_pairs_size=i;
+    #ifdef TRACK_TILE_REF_COUNT
+    i = tile_alloc();
+    #endif       
+#else    
+    g_tile_pairs_size++;
+#endif
+
+#ifdef TRACK_TILE_REF_COUNT
+    tile_pairs[i].ref=1;
+#endif    
     tile_pairs[i].a=a;
     tile_pairs[i].b=b;
     
-    g_tile_pairs_size++;
+#ifdef CACHE_ROTATIONS    
+    cache_rotations_generate(i);
+#endif        
     
+foundit:    
+
     *g_p_table_names=i+1;                
 #else
     __asm
@@ -634,6 +662,10 @@ void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
 
     ld b,a    
 loopa11:     
+#ifdef TRACK_TILE_REF_COUNT
+    inc hl           ; skip ref
+#endif  
+
     ld a,(hl)
     inc hl
     cp d
@@ -672,7 +704,25 @@ foundit:
     __endasm;  
 #endif    
 }
+
+void track_tile_pairs_reffed(unsigned char a, unsigned char b) __sdcccall(1)
+{   
+#ifdef TRACK_TILE_REF_COUNT
+    u8 slot = *g_p_table_names-1;
+    tile_pairs[slot].ref--;
     
+#ifdef REALLOC_TILE_SLOTS    
+    if (tile_pairs[slot].ref==0)
+    {
+        tile_pairs[slot].a=0xff;
+        tile_free(slot);
+    }
+#endif
+        
+#endif          
+    
+    track_tile_pairs(a, b);
+}    
 
 void scroll_patterns()
 {
@@ -798,6 +848,11 @@ loopa1:
 
     ld a,c
     push af
+
+    ;-------------------- ref
+#ifdef TRACK_TILE_REF_COUNT    
+    inc hl      
+#endif    
         
     ;-------------------- p1: de = _s_tiles[tile_pairs[i].a*8];   //TODO: Use 16 bit math as otherwise corruption happens when there are more than 32 scrolling tiles
     ld a, (hl)
@@ -886,11 +941,7 @@ void scroll_level_meta(const unsigned char * level)
             get_meta(level, o + g_offset_h, y*2, &a, &b);
 
             track_tile_pairs(a, b);
-            
-            #ifdef TRACK_USED_TILES
-            tile_add_ref();
-            #endif 
-            
+                       
             g_p_table_names++;
         }
     }        
@@ -921,13 +972,13 @@ void update_vram_patterns()
     #ifdef CACHE_ROTATIONS
     VDP_write_block_16K(g_tile_pairs_size*8, rotated_tiles_cache[g_offset_l]);
     #else
-    VDP_write_block_16K(g_patterns, g_tile_pairs_size*8);    
+    VDP_write_block_16K(g_tile_pairs_size*8, g_patterns);    
     #endif
 }
 
 void update_all_frame()
 {
-    begin_frame();
+    g_tile_pairs_size = 0;
 
     g_p_table_names = g_table_names;
     for (u8 i = 0; i< NAME_ROWS/2;i++)
@@ -960,17 +1011,9 @@ void update_right_column()
         
         unsigned char a,b;
         get_meta(s_levels[y/2], g_offset_h + 31, (y&1)*2, &a, &b);
-        
-        #ifdef TRACK_USED_TILES
-        tile_release_ref();
-        #endif             
-        
-        track_tile_pairs(a, b);        
-        
-        #ifdef TRACK_USED_TILES
-        tile_add_ref();
-        #endif         
-        
+               
+        track_tile_pairs_reffed(a, b);    
+                
         g_p_table_names+=32;
                 
     }         
@@ -995,21 +1038,11 @@ void update_left_column()
         unsigned char a,b;
         get_meta(s_levels[y/2], g_offset_h, (y&1)*2, &a, &b);
                
-        #ifdef TRACK_USED_TILES
-        tile_release_ref();
-        #endif        
-
-        track_tile_pairs(a, b);        
-
-        #ifdef TRACK_USED_TILES
-        tile_add_ref();
-        #endif        
-
+        track_tile_pairs_reffed(a, b);        
 
         g_p_table_names+=32;
     }         
 }
-
 
 //=============================================================================
 // MAIN LOOP
@@ -1034,11 +1067,9 @@ void main()
     signed char offset8 = 0;
     bool show_debug = false;
 
-    #ifdef TRACK_USED_TILES
-    for(u8 i=0;i<32;i++)
-        tile_references[i]=0;
+    #ifdef REALLOC_TILE_SLOTS
+    tile_init_reallocs();
     #endif
-
 
     set_offset(offset);
     update_all_frame();
@@ -1074,8 +1105,7 @@ void main()
             show_debug=!show_debug;
         }
         
-        scroll_patterns();       
-        
+        scroll_patterns();               
         
         Halt();
         update_vram_patterns();
@@ -1084,10 +1114,20 @@ void main()
         if (show_debug)
         {
             Print_SetPosition(0, 0);
-            for(u8 i=1;i<32;i++)
+                        
+#ifdef TRACK_TILE_REF_COUNT
+            //Print_DrawInt(g_tile_pairs_size); 
+            //Print_DrawChar(' ');
+            for(u8 i=0;i<g_tile_pairs_size;i++)
             {
-                Print_DrawInt(tile_references[i]); Print_DrawChar((char)(i+1));
+                Print_DrawHex8(tile_pairs[i].ref); 
+                Print_DrawChar((char)(i+1)); 
+                Print_DrawChar(' ');
             }
+            Print_DrawChar('*');
+            Print_DrawChar('*');
+#endif                         
+            
         }
         
    }
