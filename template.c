@@ -11,298 +11,11 @@
 // INCLUDES
 //=============================================================================
 #include "msxgl.h"
+#include "asm.h"
 
 #define USE_ASM 1
 
-//=============================================================================
-// READ-ONLY DATA
-//=============================================================================
-
-// Data table
-const unsigned char s_tiles[] =
-{
-    // nothing 0
-
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-
-    // brick  1
-
-	0b11111111,
-	0b00010000,
-	0b00010000,
-	0b00010000,
-	0b11111111,
-	0b00000001,
-	0b00000001,
-	0b00000001,
-
-    //block 2
-    
-	0b01111111,
-	0b10111111,
-	0b11011111,
-	0b11101010,
-	0b11110101,
-	0b11101010,
-	0b11110101,
-	0b11101010,
-
-	0b11111110,
-	0b11111100,
-	0b11111000,
-	0b10101000,
-	0b01010000,
-	0b10101000,
-	0b01010000,
-	0b10101000,
-
-	0b11110101,
-	0b11101010,
-	0b11110101,
-	0b11101010,
-	0b11110101,
-	0b11100000,
-	0b11000000,
-	0b10000000,
-
-	0b01010000,
-	0b10101000,
-	0b01010000,
-	0b10101000,
-	0b01010000,
-	0b00000100,
-	0b00000010,
-	0b00000001,    
-    
-    //stones 6
-    
-	0b11111111,
-    0b11010101,
-    0b10101010,
-    0b11010101,
-    0b10101010,
-    0b11010101,
-    0b10101010,
-    0b11010101,
-    
-	0b10111110,
-    0b00110100,
-    0b10101010,
-    0b00110100,
-    0b10101010,
-    0b00000001,
-    0b10111110,
-    0b00110100,
-    
-	0b10101010,
-    0b11010101,
-    0b00101010,
-    0b11000101,
-    0b10110000,
-    0b11011110,
-    0b10101010,
-    0b00000001,
-    
-	0b10101010,
-    0b00110100,
-    0b01101010,
-    0b11010100,
-    0b10101010,
-    0b11010100,
-    0b10101000,
-    0b10000000,    
-    
-    // question mark 10
-	0b11010101,
-	0b11111111,
-	0b01011111,
-	0b11111010,
-	0b01110100,
-	0b11111001,
-	0b01110101,
-	0b11111001,
-
-	0b01010101,
-	0b11111110,
-	0b11111010,
-	0b10111110,
-	0b01011110,
-	0b10101110,
-	0b11001110,
-	0b10101110,
-
-	0b01111111,
-	0b11111110,
-	0b01111111,
-	0b11111110,
-	0b01111111,
-	0b11011111,
-	0b01111111,
-	0b00000000,
-
-	0b00001110,
-	0b10111110,
-	0b00111110,
-	0b11111110,
-	0b00111110,
-	0b00111010,
-	0b11111110,
-	0b00000000,
-    
-    //castle door 14
-	0b00001100,
-	0b00110000,
-	0b01000000,
-	0b11000000,
-	0b10000000,
-	0b10000000,
-	0b00000000,
-	0b00000000,
-
-	0b00110001,
-	0b00001101,
-	0b00000011,
-	0b00000011,
-	0b00000001,
-	0b00000001,
-	0b00000000,
-	0b00000000,
-
-
-    // turret 16
-
-	0b11110000,
-	0b00010000,
-	0b00010000,
-	0b00010000,
-	0b11111111,
-	0b00000001,
-	0b00000001,
-	0b00000001,
-
-    // brick 17
-
-	0b00011111, 
-	0b00010000,
-	0b00010000,
-	0b00010000,
-	0b11111111,
-	0b00000001,
-	0b00000001,
-	0b00000001,
-
-    // stick 18
-
-	0b00000011, 
-	0b00000011,
-	0b00000011,
-	0b00000011,
-	0b00000011,
-	0b00000011,
-	0b00000011,
-	0b00000011,
-
-    // flag 19
-
-	0b10101010, 
-	0b01010101,
-	0b00101010,
-	0b00010101,
-	0b00001010,
-	0b00000101,
-	0b00000010,
-	0b00000001,
-
-	0b10101010,
-	0b01111101,
-	0b11010110,
-	0b10010011,
-	0b10111010,
-	0b11101111,
-	0b01111110,
-	0b01010101,
-    
-    // coin 21
-	0b00000000, 
-	0b00000010,
-	0b00000101,
-	0b00000011,
-	0b00000111,
-	0b00001010,
-	0b00000101,
-	0b00001010,
-
-	0b00000000,
-	0b10000000,
-	0b01000000,
-	0b10100000,
-	0b00010000,
-	0b10100000,
-	0b00010000,
-	0b10100000,
-
-	0b00000111,
-	0b00001010,
-	0b00000111,
-	0b00001010,
-	0b00000111,
-	0b00000010,
-	0b00000001,
-	0b00000000,
-
-	0b00010000,
-	0b10100000,
-	0b00010000,
-	0b10100000,
-	0b01000000,
-	0b10100000,
-	0b01000000,
-	0b00000000,    
-    
-    // cloud top 25
-    0x03,0x04,0x18,0x20,0x20,0x20,0x40,0x80,
-    0xC0,0x20,0x10,0x14,0x0A,0x01,0x01,0x01,
-    0x07,0x08,0x10,0x00,0x60,0x80,0x80,0x40,
-    0x90,0xA8,0x48,0x0A,0x05,0x01,0x01,0x02    
-};
-
-// 16x16 metatiles are made of 4 8x8 tiles
-
-const unsigned char g_metatile[] = { 
-    0,0,0,0,     // none
-    1,1,1,1,     // brick
-    2,3,4,5,     // block 1
-    6,7,8,9,     // block stone
-    10,11,12,13, //question mark
-    1,1,14,15,   // brick
-    16,17,1,1,   // brick
-    1,0,1,0,     // window 1      7   
-    0,1,0,1,     // window 2      8
-    0,18,0,18,   //stick         9
-    19,20,0,19,  // flag
-    21,22,23,24, // coin 11
-    0,0,0,27, // cloud 1/3 12
-    25,26,0,0, // cloud 2/3 13
-    0,0,28,0, // cloud 3/3 14
- };
-
-// list of metatiles to scroll
-const unsigned char s_level0[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,0,0,0,0,0,0,0,0,0,0,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,9,0,0,0,0};
-const unsigned char s_level1[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,9,0,0,0,0,0,6,6,6,0,0,0,0};
-const unsigned char s_level2[] = {0,0,0,0,0,1,1,1,0,0,0,0,2,0,0,2,0,0,0,0,0,1,0,0,1,4,1,4,1,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,9,0,0,0,0,0,7,1,8,0,0,0,0};
-const unsigned char s_level3[] = {0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,9,0,0,0,0,6,6,6,6,6,0,0,0};
-const unsigned char s_level4[] = {0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0,9,0,0,0,0,1,1,5,1,1,0,0,0};
-const unsigned char s_level5[] = {0,12,13,14,0,0,0,0,0,0,2,0,2,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,0,0,0,0,0,0,2,0,0,0,0,1,1,0,1,1,0,0,0};
-const unsigned char s_level6[] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3};
-
-const unsigned char *s_levels[] = {s_level0, s_level1, s_level2, s_level3, s_level4, s_level5, s_level6, s_level6 };
+#include "smb.h"
 
 #define REALLOC_TILE_SLOTS
 #define TRACK_TILE_REF_COUNT
@@ -330,7 +43,6 @@ unsigned int  g_offset_h=0;
 #ifdef CACHE_ROTATIONS
 unsigned char rotated_tiles_cache[8][8*PATTERN_SIZE];
 
-
 void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  *dptr, u8 offset)
 {
     unsigned char offset1 = offset;    
@@ -347,8 +59,207 @@ void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  
 }
 
 
-void cache_rotations_generate(u8 slot)
+void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
 {    
+    __asm
+    ;----------------------------------------------------
+    ; scrolls horizontally a 8x8 tile by a certain amount
+    ; tiles input: de, bc
+    ; scrolled output:   hl
+    ; amount: macro parameter
+    ;----------------------------------------------------
+    
+    .macro COPY_0
+        push de
+        push bc
+    
+            .rept 8            
+            ld a, (de)    
+            ld (hl),a
+            inc de
+            inc hl
+            .endm
+            
+        ld bc, #(8*(PATTERN_SIZE-1))
+        add hl,bc
+        
+        pop bc
+        pop de        
+            
+    .endm
+    
+    .macro copy8
+        push de
+        push bc
+    
+            .rept 8            
+            ld a, (bc)    
+            ld (hl),a
+            inc bc
+            inc hl
+            .endm
+            
+        ld bc, #(8*(PATTERN_SIZE-1))
+        add hl,bc
+        
+        pop bc
+        pop de        
+            
+    .endm
+    
+    .macro SHIFT amount
+        push de
+        push bc
+           
+        .rept 8            
+            ld a,(de)
+            inc de
+            push de
+#if 1                      
+                .rept amount
+                add	a, a
+                .endm  
+#else
+                ; <--------------- I gave up with this :(
+                .if eq,amount,1
+                add	a, a
+                .endif
+
+                .if eq,amount,2 
+                add	a, a
+                add	a, a
+                .endif
+                
+                .if eq,amount,3 
+                add	a, a
+                add	a, a
+                add	a, a
+                .endif
+                .if eq,amount,4 
+                add	a, a
+                add	a, a
+                add	a, a
+                add	a, a
+                .endif
+                .if eq,amount,5
+                add	a, a
+                add	a, a
+                add	a, a
+                add	a, a
+                add	a, a
+                .endif
+                .if eq,amount,6
+                add	a, a
+                add	a, a
+                add	a, a
+                add	a, a
+                add	a, a
+                add	a, a
+                .endif
+#endif
+                ld d,a
+
+                ld a, (bc)    
+                inc bc
+#if 1                  
+                .rept 8 - amount
+                srl a
+                .endm  
+#else                
+                ; <--------------- I gave up with this :(
+                ;.if eq, amount==1 
+                ;RShift(7) 
+                ;.endif
+                ;.if eq, amount==2 
+                ;RShift(6) 
+                ;.endif
+                ;.if eq, amount==3 
+                ;RShift(5) 
+                ;.endif
+                ;.if eq, amount==4 
+                ;RShift(4) 
+                ;.endif
+                ;.if eq, amount==5 
+                ;RShift(3) 
+                ;.endif
+                ;.if eq, amount==6 
+                ;RShift(2) 
+                ;.endif
+#endif                
+                or d
+            
+                ld (hl), a    
+                inc hl
+            pop de
+        .endm  
+ 
+        ld bc, #(8*(PATTERN_SIZE-1))
+        add hl,bc
+        
+        pop bc
+        pop de        
+    .endm  
+
+    ; hl has *tp
+    ; de has *dest
+    xor a
+    push de
+    
+    inc hl  ; skip ref count
+    inc hl 
+    
+    push hl
+    
+    ;---------  *pchar1 =  s_tiles + tile_pairs[slot].a*8
+    ld l, (hl)   ; get a
+    ld h, a 
+
+    add hl, hl   ; * 8
+    add hl, hl
+    add hl, hl
+    
+    ld de, #_s_tiles      
+    add hl,de
+    
+    ld d, h  ; de = pchar1
+    ld e, l
+    ;---------
+
+    pop hl      
+    inc hl
+    
+    ;--------- *pchar2 =  s_tiles + tile_pairs[slot].b*8
+    ld l, (hl)   ; get b
+    ld h, a 
+
+    add hl, hl   ; * 8
+    add hl, hl
+    add hl, hl
+    
+    ld bc, #_s_tiles    
+    add hl,bc
+    
+    ld b, h  ; bc = pchar2    
+    ld c, l
+    ;---------
+    
+    pop hl     ; hl = dest
+    
+    COPY_0
+    SHIFT 1
+    SHIFT 2
+    SHIFT 3
+    SHIFT 4
+    SHIFT 5
+    SHIFT 6
+    SHIFT 7
+    
+    __endasm;
+}
+
+void cache_rotations_generate(u8 slot)
+{   
+#if USE_ASM == 0 
     for(u8 i=0;i<8;i++)
     {
         unsigned char *pchar1 =  s_tiles + tile_pairs[slot].a*8;    
@@ -356,6 +267,9 @@ void cache_rotations_generate(u8 slot)
         unsigned char *dptr   =  &rotated_tiles_cache[i][slot*8];       
         rotate_blocks(pchar1, pchar2, dptr, i);
     }
+#else
+    cache_rotations_generate_asm((u8*)&tile_pairs[slot], &rotated_tiles_cache[0][slot*8]);
+#endif    
 }
 #else
 unsigned char g_patterns[8*PATTERN_SIZE];
@@ -400,7 +314,6 @@ void set_offset(unsigned int offset)
     g_offset_l_times_3 = (offset & 7)*3;
 #endif    
 }
-
 
 // 98h
 #define P_VDP_0			0x98			///< Primary MSX port for VDP port #0
