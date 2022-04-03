@@ -21,7 +21,7 @@
 // Data table
 const unsigned char s_tiles[] =
 {
-    // nothing
+    // nothing 0
 
 	0b00000000,
 	0b00000000,
@@ -32,7 +32,7 @@ const unsigned char s_tiles[] =
 	0b00000000,
 	0b00000000,
 
-    // brick
+    // brick  1
 
 	0b11111111,
 	0b00010000,
@@ -43,7 +43,7 @@ const unsigned char s_tiles[] =
 	0b00000001,
 	0b00000001,
 
-    //block 1
+    //block 2
     
 	0b01111111,
 	0b10111111,
@@ -81,7 +81,7 @@ const unsigned char s_tiles[] =
 	0b00000010,
 	0b00000001,    
     
-    //block 2
+    //stones 6
     
 	0b11111111,
     0b11010101,
@@ -119,44 +119,44 @@ const unsigned char s_tiles[] =
     0b10101000,
     0b10000000,    
     
-    // question mark
-	0b00101010,
+    // question mark 10
+	0b11010101,
+	0b11111111,
+	0b01011111,
+	0b11111010,
+	0b01110100,
+	0b11111001,
+	0b01110101,
+	0b11111001,
+
+	0b01010101,
+	0b11111110,
+	0b11111010,
+	0b10111110,
+	0b01011110,
+	0b10101110,
+	0b11001110,
+	0b10101110,
+
+	0b01111111,
+	0b11111110,
+	0b01111111,
+	0b11111110,
+	0b01111111,
+	0b11011111,
+	0b01111111,
 	0b00000000,
-	0b10100000,
-	0b00000101,
-	0b10001011,
-	0b00000110,
-	0b10001010,
-	0b00000110,
 
-	0b10101010,
-	0b00000001,
-	0b00000101,
-	0b01000001,
-	0b10100001,
-	0b01010001,
-	0b00110001,
-	0b01010001,
-
-	0b10000000,
-	0b00000001,
-	0b10000000,
-	0b00000001,
-	0b10000000,
-	0b00100000,
-	0b10000000,
-	0b11111111,
-
-	0b11110001,
-	0b01000001,
-	0b11000001,
-	0b00000001,
-	0b11000001,
-	0b11000101,
-	0b00000001,
-	0b11111111,
+	0b00001110,
+	0b10111110,
+	0b00111110,
+	0b11111110,
+	0b00111110,
+	0b00111010,
+	0b11111110,
+	0b00000000,
     
-    //castle door
+    //castle door 14
 	0b00001100,
 	0b00110000,
 	0b01000000,
@@ -176,7 +176,7 @@ const unsigned char s_tiles[] =
 	0b00000000,
 
 
-    // turret
+    // turret 16
 
 	0b11110000,
 	0b00010000,
@@ -187,9 +187,9 @@ const unsigned char s_tiles[] =
 	0b00000001,
 	0b00000001,
 
-    // brick
+    // brick 17
 
-	0b00011111,
+	0b00011111, 
 	0b00010000,
 	0b00010000,
 	0b00010000,
@@ -198,20 +198,20 @@ const unsigned char s_tiles[] =
 	0b00000001,
 	0b00000001,
 
-    // stick
+    // stick 18
 
-	0b11000000,
-	0b11000000,
-	0b11000000,
-	0b11000000,
-	0b11000000,
-	0b11000000,
-	0b11000000,
-	0b11000000,
+	0b00000011, 
+	0b00000011,
+	0b00000011,
+	0b00000011,
+	0b00000011,
+	0b00000011,
+	0b00000011,
+	0b00000011,
 
-    // flag
+    // flag 19
 
-	0b10101010,
+	0b10101010, 
 	0b01010101,
 	0b00101010,
 	0b00010101,
@@ -228,53 +228,81 @@ const unsigned char s_tiles[] =
 	0b11101111,
 	0b01111110,
 	0b01010101,
+    
+    // coin 21
+	0b00000000, 
+	0b00000010,
+	0b00000101,
+	0b00000011,
+	0b00000111,
+	0b00001010,
+	0b00000101,
+	0b00001010,
 
 	0b00000000,
+	0b10000000,
+	0b01000000,
+	0b10100000,
+	0b00010000,
+	0b10100000,
+	0b00010000,
+	0b10100000,
+
+	0b00000111,
+	0b00001010,
+	0b00000111,
+	0b00001010,
+	0b00000111,
+	0b00000010,
+	0b00000001,
 	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-	0b00000000,
-    
+
+	0b00010000,
+	0b10100000,
+	0b00010000,
+	0b10100000,
+	0b01000000,
+	0b10100000,
+	0b01000000,
+	0b00000000,    
 };
 
 // 16x16 metatiles are made of 4 8x8 tiles
 
 const unsigned char g_metatile[] = { 
-    0,0,0,0,  // none
-    1,1,1,1,  // brick
-    2,3,4,5,  // block 1
-    6,7,8,9,  // block 2
-    10,11,12,13,//question mark
-    1,1,14,15,  // brick
-    16,17,1,1,  // brick
-    1,0,1,0,   // window 1      7   
-    0,1,0,1,   // window 2      8
-    0,18,0,18,  //stick         9
-    19,20,0,19, // flag
+    0,0,0,0,     // none
+    1,1,1,1,     // brick
+    2,3,4,5,     // block 1
+    6,7,8,9,     // block stone
+    10,11,12,13, //question mark
+    1,1,14,15,   // brick
+    16,17,1,1,   // brick
+    1,0,1,0,     // window 1      7   
+    0,1,0,1,     // window 2      8
+    0,18,0,18,   //stick         9
+    19,20,0,19,  // flag
+    21,22,23,24, // coin 11
  };
 
 // list of metatiles to scroll
-const unsigned char s_level0[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0};
-const unsigned char s_level1[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,9,0,0,0,0,0,6,6,6,0,0,0,0};
-const unsigned char s_level2[] = {0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,4,1,4,1,0,0,0,0,0,0,2,2,0,0,0,0,9,0,0,0,0,0,7,1,8,0,0,0,0};
-const unsigned char s_level3[] = {0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,9,0,0,0,0,6,6,6,6,6,0,0,0};
-const unsigned char s_level4[] = {0,0,0,0,0,0,0,0,0,2,0,2,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,9,0,0,0,0,1,1,5,1,1,0,0,0};
-const unsigned char s_level5[] = {0,0,0,0,0,0,0,0,0,2,0,2,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,0,0,0,0,2,0,0,0,0,1,1,0,1,1,0,0,0};
-const unsigned char s_level6[] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3};
+const unsigned char s_level0[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,11,11,0,0,0,0,0,0,0,0,0,11,11,11,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,9,0,0,0,0};
+const unsigned char s_level1[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,9,0,0,0,0,0,6,6,6,0,0,0,0};
+const unsigned char s_level2[] = {0,0,0,0,0,1,1,1,0,0,0,0,2,0,0,2,0,0,0,1,0,0,0,1,4,1,4,1,0,0,0,0,0,0,2,2,0,0,0,0,0,0,9,0,0,0,0,0,7,1,8,0,0,0,0};
+const unsigned char s_level3[] = {0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,0,0,0,9,0,0,0,0,6,6,6,6,6,0,0,0};
+const unsigned char s_level4[] = {0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0,9,0,0,0,0,1,1,5,1,1,0,0,0};
+const unsigned char s_level5[] = {0,0,0,0,0,0,0,0,0,0,2,0,2,0,0,2,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,2,2,0,0,0,0,0,0,2,0,0,0,0,1,1,0,1,1,0,0,0};
+const unsigned char s_level6[] = {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3};
 
 const unsigned char *s_levels[] = {s_level0, s_level1, s_level2, s_level3, s_level4, s_level5, s_level6, s_level6 };
 
-//#define REALLOC_TILE_SLOTS
+#define REALLOC_TILE_SLOTS
 #define TRACK_TILE_REF_COUNT
 #define CACHE_ROTATIONS
 
 struct SEQ 
 { 
 #ifdef TRACK_TILE_REF_COUNT
-    unsigned char ref;
+    unsigned int ref;
 #endif    
     unsigned char a, b; 
 };
@@ -283,7 +311,6 @@ struct SEQ
 #define NAME_ROWS 16
 unsigned char g_tile_pairs_size = 0;
 struct SEQ tile_pairs[PATTERN_SIZE];
-unsigned char g_patterns[8*PATTERN_SIZE];
 unsigned char g_table_names[32*NAME_ROWS]; 
 unsigned char *g_p_table_names = g_table_names;
 unsigned char g_offset_l=0;
@@ -293,6 +320,7 @@ unsigned int  g_offset_h=0;
 
 #ifdef CACHE_ROTATIONS
 unsigned char rotated_tiles_cache[8][8*PATTERN_SIZE];
+
 
 void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  *dptr, u8 offset)
 {
@@ -309,6 +337,7 @@ void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  
     *dptr++ = (*pchar1++ << offset1) | (*pchar2++ >> offset2);   
 }
 
+
 void cache_rotations_generate(u8 slot)
 {    
     for(u8 i=0;i<8;i++)
@@ -316,17 +345,17 @@ void cache_rotations_generate(u8 slot)
         unsigned char *pchar1 =  s_tiles + tile_pairs[slot].a*8;    
         unsigned char *pchar2 =  s_tiles + tile_pairs[slot].b*8; 
         unsigned char *dptr   =  &rotated_tiles_cache[i][slot*8];       
-    
         rotate_blocks(pchar1, pchar2, dptr, i);
     }
 }
+#else
+unsigned char g_patterns[8*PATTERN_SIZE];
 #endif
 
 #ifdef REALLOC_TILE_SLOTS
 unsigned char tile_allocated_size=0;
 unsigned char tile_available_size=0;
 unsigned char tile_available[PATTERN_SIZE];
-unsigned char tile_used[PATTERN_SIZE];
 
 void tile_init_reallocs()
 {
@@ -352,7 +381,6 @@ void tile_free(u8 tile_id)
     tile_available_size++;
     tile_allocated_size--;        
 }
-
 #endif
 
 void set_offset(unsigned int offset)
@@ -364,6 +392,220 @@ void set_offset(unsigned int offset)
 #endif    
 }
 
+
+// 98h
+#define P_VDP_0			0x98			///< Primary MSX port for VDP port #0
+#define P_VDP_DATA		P_VDP_0			///< VRAM data port (read/write)
+
+// 99h
+#define P_VDP_1			0x99			///< Primary MSX port for VDP port #1
+#define P_VDP_REG		P_VDP_1			///< Register setup port (write) (bit 7=1 in second write)
+#define P_VDP_ADDR		P_VDP_1			///< VRAM address port (write) (bit 7=0 in second write, bit 6: read/write access (0=read, 1=write))
+#define F_VDP_WRIT	    0x40
+
+void VDP_set_vram_dest_16K(u16 dest) __sdcccall(1)
+{
+	dest;
+ 
+	__asm                
+		// Setup address register 
+		ld		a, l
+		di //~~~~~~~~~~~~~~~~~~~~~~~~~~
+		out		(P_VDP_ADDR), a			// RegPort = (dest & 0xFF)
+		ld		a, h
+		and		a, #0x3F
+		add		a, #F_VDP_WRIT
+		ei //~~~~~~~~~~~~~~~~~~~~~~~~~~
+		out		(P_VDP_ADDR), a			// RegPort = ((dest >> 8) & 0x3F) + F_VDP_WRIT
+	__endasm;
+}
+
+void VDP_write_16K(u8 count, const u8* src) __sdcccall(1)
+{
+	src, count;
+	__asm
+		//exit if count is 0
+        or a
+        jr z, vdp_write_wrt16_exit_loop 
+        ld		b, a				// count
+        
+		ld		c, #P_VDP_DATA	      
+        ex      de, hl
+       
+        // Fast loop	        
+	write_wrt16_loop_start:
+		outi							// out(c) ; hl++ ; b--
+		jp		nz, write_wrt16_loop_start
+        
+vdp_write_wrt16_exit_loop:
+
+	__endasm;
+}
+
+
+void VDP_write_block_16K(u8 count, const u8* src) __sdcccall(1)
+{
+	src, count;
+	__asm
+
+		//exit if count is 0
+        or a
+        jr z, vdp_exit_loop 
+        
+        ld		b, a				// count
+
+		ld		c, #P_VDP_DATA	      
+        ex      de, hl
+        
+        // Fast loop	       
+	write_block_wrt16_loop_start:
+        .rept 8            
+		outi							// out(c) ; hl++ ; b--
+        .endm
+		jp		nz, write_block_wrt16_loop_start
+        
+vdp_exit_loop:
+
+	__endasm;
+}
+
+void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
+{
+#if USE_ASM == 1
+    // check if we have already computed that pattern 
+    unsigned char i=0;
+    
+#ifdef REALLOC_TILE_SLOTS    
+    for(;i<g_tile_pairs_size;i++)
+    {
+        if (tile_pairs[i].ref == 0)
+            continue;
+            
+        if ((a==tile_pairs[i].a) && (b==tile_pairs[i].b))
+        {                     
+        #ifdef TRACK_TILE_REF_COUNT
+            tile_pairs[i].ref++;
+        #endif    
+            goto foundit;
+        }
+    }
+#else
+    for(;i<g_tile_pairs_size;i++)
+    {
+        if ((a==tile_pairs[i].a) && (b==tile_pairs[i].b))
+        {                     
+        #ifdef TRACK_TILE_REF_COUNT
+            tile_pairs[i].ref++;
+        #endif    
+            goto foundit;
+        }
+    }
+    //allocate new pair   
+    g_tile_pairs_size++;       
+
+#endif
+
+#ifdef TRACK_TILE_REF_COUNT
+    #ifdef REALLOC_TILE_SLOTS        
+        i = tile_alloc();
+        
+        if (tile_allocated_size>g_tile_pairs_size)
+            g_tile_pairs_size = tile_allocated_size;
+        
+     #endif    
+    tile_pairs[i].ref=1;
+#endif    
+
+    tile_pairs[i].a=a;
+    tile_pairs[i].b=b;
+    
+#ifdef CACHE_ROTATIONS    
+    cache_rotations_generate(i);
+#endif        
+    
+foundit:    
+
+    *g_p_table_names=i+1;                
+#else
+    __asm
+    ld d, a           ; a
+    ld e, l           ; b
+    ld hl, #_tile_pairs
+    
+    xor a
+    ld c,a
+
+    ld a, (#_g_tile_pairs_size)
+    or a
+    jr z,notfound 
+
+    ld b,a    
+loopa11:     
+#ifdef TRACK_TILE_REF_COUNT
+    inc hl           ; skip ref
+#endif  
+
+    ld a,(hl)
+    inc hl
+    cp d
+    jr nz, nope1
+    
+    ld a,(hl)
+    cp e
+    jr z, foundit    
+
+nope1:
+    inc hl
+    inc c
+    djnz loopa11
+;------------------------------------
+
+    ; store a,b
+notfound:    
+    ld (hl),d
+    inc hl
+    ld (hl),e    
+    
+    inc c
+    ld hl, #_g_tile_pairs_size
+    ld (hl),c
+    dec c
+    
+foundit:    
+
+    ; g_table_names[o]=i+1;    
+        
+    ld hl, (#_g_p_table_names)
+
+    inc c
+    ld (hl),c    
+
+    __endasm;  
+#endif    
+}
+
+void track_tile_pairs_reffed(unsigned char a, unsigned char b) __sdcccall(1)
+{   
+#ifdef TRACK_TILE_REF_COUNT
+    u8 slot = *g_p_table_names-1;
+    tile_pairs[slot].ref--;
+    
+#ifdef REALLOC_TILE_SLOTS    
+    if (tile_pairs[slot].ref==0)
+    {
+        tile_pairs[slot].a=0xff;
+        tile_free(slot);
+    }
+#endif
+        
+#endif          
+    
+    track_tile_pairs(a, b);
+}    
+
+#ifdef CACHE_ROTATIONS
+void scroll_patterns() {}
+#else
 //
 // This code scrolls just one tile, this function is not used in this sample but I left it here as a reference as it might help understand more code below
 //
@@ -531,205 +773,8 @@ scroll_done:
 #endif
 }
 
-// 98h
-#define P_VDP_0			0x98			///< Primary MSX port for VDP port #0
-#define P_VDP_DATA		P_VDP_0			///< VRAM data port (read/write)
-
-// 99h
-#define P_VDP_1			0x99			///< Primary MSX port for VDP port #1
-#define P_VDP_REG		P_VDP_1			///< Register setup port (write) (bit 7=1 in second write)
-#define P_VDP_ADDR		P_VDP_1			///< VRAM address port (write) (bit 7=0 in second write, bit 6: read/write access (0=read, 1=write))
-#define F_VDP_WRIT	    0x40
-
-void VDP_set_vram_dest_16K(u16 dest) __sdcccall(1)
-{
-	dest;
- 
-	__asm                
-		// Setup address register 
-		ld		a, l
-		di //~~~~~~~~~~~~~~~~~~~~~~~~~~
-		out		(P_VDP_ADDR), a			// RegPort = (dest & 0xFF)
-		ld		a, h
-		and		a, #0x3F
-		add		a, #F_VDP_WRIT
-		ei //~~~~~~~~~~~~~~~~~~~~~~~~~~
-		out		(P_VDP_ADDR), a			// RegPort = ((dest >> 8) & 0x3F) + F_VDP_WRIT
-	__endasm;
-}
-
-void VDP_write_16K(u8 count, const u8* src) __sdcccall(1)
-{
-	src, count;
-	__asm
-		//exit if count is 0
-        or a
-        jr z, vdp_write_wrt16_exit_loop 
-        ld		b, a				// count
-        
-		ld		c, #P_VDP_DATA	      
-        ex      de, hl
-       
-        // Fast loop	        
-	write_wrt16_loop_start:
-		outi							// out(c) ; hl++ ; b--
-		jp		nz, write_wrt16_loop_start
-        
-vdp_write_wrt16_exit_loop:
-
-	__endasm;
-}
-
-
-void VDP_write_block_16K(u8 count, const u8* src) __sdcccall(1)
-{
-	src, count;
-	__asm
-
-		//exit if count is 0
-        or a
-        jr z, vdp_exit_loop 
-        
-        ld		b, a				// count
-
-		ld		c, #P_VDP_DATA	      
-        ex      de, hl
-        
-        // Fast loop	       
-	write_block_wrt16_loop_start:
-        .rept 8            
-		outi							// out(c) ; hl++ ; b--
-        .endm
-		jp		nz, write_block_wrt16_loop_start
-        
-vdp_exit_loop:
-
-	__endasm;
-}
-
-void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
-{
-#if USE_ASM == 1
-    // check if we have already computed that pattern 
-    unsigned char i=0;
-    for(;i<g_tile_pairs_size;i++)
-    {
-        if ((a==tile_pairs[i].a) && (b==tile_pairs[i].b))
-        {                     
-        #ifdef TRACK_TILE_REF_COUNT
-            tile_pairs[i].ref++;
-        #endif    
-            goto foundit;
-        }
-    }
-
-    //allocate new pair
-    
-#ifdef REALLOC_TILE_SLOTS
-    //g_tile_pairs_size=i;
-    #ifdef TRACK_TILE_REF_COUNT
-    i = tile_alloc();
-    #endif       
-#else    
-    g_tile_pairs_size++;
-#endif
-
-#ifdef TRACK_TILE_REF_COUNT
-    tile_pairs[i].ref=1;
-#endif    
-    tile_pairs[i].a=a;
-    tile_pairs[i].b=b;
-    
-#ifdef CACHE_ROTATIONS    
-    cache_rotations_generate(i);
-#endif        
-    
-foundit:    
-
-    *g_p_table_names=i+1;                
-#else
-    __asm
-    ld d, a           ; a
-    ld e, l           ; b
-    ld hl, #_tile_pairs
-    
-    xor a
-    ld c,a
-
-    ld a, (#_g_tile_pairs_size)
-    or a
-    jr z,notfound 
-
-    ld b,a    
-loopa11:     
-#ifdef TRACK_TILE_REF_COUNT
-    inc hl           ; skip ref
-#endif  
-
-    ld a,(hl)
-    inc hl
-    cp d
-    jr nz, nope1
-    
-    ld a,(hl)
-    cp e
-    jr z, foundit    
-
-nope1:
-    inc hl
-    inc c
-    djnz loopa11
-;------------------------------------
-
-    ; store a,b
-notfound:    
-    ld (hl),d
-    inc hl
-    ld (hl),e    
-    
-    inc c
-    ld hl, #_g_tile_pairs_size
-    ld (hl),c
-    dec c
-    
-foundit:    
-
-    ; g_table_names[o]=i+1;    
-        
-    ld hl, (#_g_p_table_names)
-
-    inc c
-    ld (hl),c    
-
-    __endasm;  
-#endif    
-}
-
-void track_tile_pairs_reffed(unsigned char a, unsigned char b) __sdcccall(1)
-{   
-#ifdef TRACK_TILE_REF_COUNT
-    u8 slot = *g_p_table_names-1;
-    tile_pairs[slot].ref--;
-    
-#ifdef REALLOC_TILE_SLOTS    
-    if (tile_pairs[slot].ref==0)
-    {
-        tile_pairs[slot].a=0xff;
-        tile_free(slot);
-    }
-#endif
-        
-#endif          
-    
-    track_tile_pairs(a, b);
-}    
-
 void scroll_patterns()
 {
-    #ifdef CACHE_ROTATIONS
-    return;
-    #endif
-
 #if USE_ASM == 0
     for(unsigned char i=0;i<g_tile_pairs_size;i++)
     {
@@ -917,6 +962,7 @@ exit:
     __endasm;  
 #endif    
 }
+#endif
 
 ////////////////////////////// 16x16 tiles
 
@@ -1076,7 +1122,7 @@ void main()
 
     while(1)
     {        
-        if(Keyboard_IsKeyPressed(KEY_RIGHT) && offset<512+72)
+        if(Keyboard_IsKeyPressed(KEY_RIGHT) && offset<(sizeof(s_level6)-16)*2*8)
         {
             offset+=1;
             set_offset(offset);           
@@ -1112,12 +1158,14 @@ void main()
         update_vram_names();    
         
         if (show_debug)
-        {
-            Print_SetPosition(0, 0);
-                        
+        {                        
 #ifdef TRACK_TILE_REF_COUNT
-            //Print_DrawInt(g_tile_pairs_size); 
-            //Print_DrawChar(' ');
+            Print_SetPosition(0, 0);
+
+            Print_DrawHex8(tile_allocated_size); 
+            Print_DrawChar(' ');
+            Print_DrawHex8(g_tile_pairs_size);
+/*
             for(u8 i=0;i<g_tile_pairs_size;i++)
             {
                 Print_DrawHex8(tile_pairs[i].ref); 
@@ -1126,6 +1174,7 @@ void main()
             }
             Print_DrawChar('*');
             Print_DrawChar('*');
+*/            
 #endif                         
             
         }
