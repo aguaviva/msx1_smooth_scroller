@@ -349,15 +349,34 @@ void VDP_write_16K(u8 count, const u8* src) __sdcccall(1)
 		//exit if count is 0
         or a
         jr z, vdp_write_wrt16_exit_loop 
-        ld		b, a				// count
         
 		ld		c, #P_VDP_DATA	      
         ex      de, hl
        
-        // Fast loop	        
-	write_wrt16_loop_start:
+        
+        ld		d, a				// count
+
+        // slow loop, individual outs	        
+        and		a, #0x07 
+        jr		z, write_wrt16_loop_start_unrolled
+        ld		b,a
+    write_wrt16_loop_start_1:        
+        outi							// out(c) ; hl++ ; b--
+        jp		nz, write_wrt16_loop_start_1
+    
+    write_wrt16_loop_start_unrolled:
+        
+        ld		a, d
+        
+        // fast loop, outs unrolled in blocks of 8	        
+        and		a, #0xf8 
+        jr		z, vdp_write_wrt16_exit_loop
+        ld		b,a        
+	write_wrt16_loop_start_2:
+        .rept 8            
 		outi							// out(c) ; hl++ ; b--
-		jp		nz, write_wrt16_loop_start
+        .endm
+		jp		nz, write_wrt16_loop_start_2
         
 vdp_write_wrt16_exit_loop:
 
@@ -463,8 +482,12 @@ foundit:
 
     ld b,a    
 loopa11:     
-#ifdef TRACK_TILE_REF_COUNT
-    inc hl           ; skip ref
+#ifdef TRACK_TILE_REF_COUNT    
+    ld a,(hl)   ; if no refs, skip pair
+    inc hl
+    or (hl)
+    jr z, nope1
+    inc hl
 #endif  
 
     ld a,(hl)
@@ -525,9 +548,7 @@ void track_tile_pairs_reffed(unsigned char a, unsigned char b) __sdcccall(1)
     track_tile_pairs(a, b);
 }    
 
-#ifdef CACHE_ROTATIONS
-void scroll_patterns() {}
-#else
+#ifndef CACHE_ROTATIONS
 //
 // This code scrolls just one tile, this function is not used in this sample but I left it here as a reference as it might help understand more code below
 //
@@ -953,7 +974,9 @@ void update_all_frame()
     {       
         scroll_level_meta(s_levels[i]);
     }
+#ifndef CACHE_ROTATIONS    
     scroll_patterns();       
+#endif
 
     Halt();
 
@@ -1073,7 +1096,10 @@ void main()
             show_debug=!show_debug;
         }
         
-        scroll_patterns();               
+#ifndef CACHE_ROTATIONS    
+    scroll_patterns();       
+#endif
+             
         
         Halt();
         update_vram_patterns();
