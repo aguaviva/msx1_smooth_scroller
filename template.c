@@ -20,6 +20,7 @@
 #define REALLOC_TILE_SLOTS
 #define TRACK_TILE_REF_COUNT
 #define CACHE_ROTATIONS
+#define REUSE_PREVIOUS_ROT
 
 struct SEQ 
 { 
@@ -70,7 +71,11 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     ;----------------------------------------------------
     
     .macro COPY_0
+#ifdef REUSE_PREVIOUS_ROT    
+        push hl         ; save dest, later will become source as "pop de"
+#else
         push de
+#endif        
         push bc
     
             .rept 8            
@@ -88,38 +93,30 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
             
     .endm
     
-    .macro copy8
-        push de
-        push bc
-    
-            .rept 8            
-            ld a, (bc)    
-            ld (hl),a
-            inc bc
-            inc hl
-            .endm
-            
-        ld bc, #(8*(PATTERN_SIZE-1))
-        add hl,bc
-        
-        pop bc
-        pop de        
-            
-    .endm
-    
     .macro SHIFT amount
+    
+#ifdef REUSE_PREVIOUS_ROT    
+        push hl           ; save dest, later will become source as "pop de"
+#else        
         push de
+#endif
+    
         push bc
            
         .rept 8            
             ld a,(de)
             inc de
             push de
-#if 1                      
+            
+#ifdef REUSE_PREVIOUS_ROT    
+                add	a, a    ; only do it once as we are reading from previous rotated tile
+#else            
+            
+    #if 1                      
                 .rept amount
                 add	a, a
                 .endm  
-#else
+    #else
                 ; <--------------- I gave up with this :(
                 .if eq,amount,1
                 add	a, a
@@ -156,15 +153,25 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
                 add	a, a
                 add	a, a
                 .endif
-#endif
+    #endif
+#endif    
                 ld d,a
 
                 ld a, (bc)    
                 inc bc
 #if 1                  
+                
+    #ifdef REUSE_PREVIOUS_ROT                    
                 .rept 8 - amount
+                rrca
+                .endm  
+                and a, #0x01
+    #else           
+                .rept 8 - amount     
                 srl a
                 .endm  
+    #endif                
+                
 #else                
                 ; <--------------- I gave up with this :(
                 ;.if eq, amount==1 
@@ -210,7 +217,7 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     
     push hl
     
-    ;---------  *pchar1 =  s_tiles + tile_pairs[slot].a*8
+    ;---------  *pchar1 =  s_tiles + tile_pairs[slot].a*8   --> de
     ld l, (hl)   ; get a
     ld h, a 
 
@@ -219,7 +226,7 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     add hl, hl
     
     ld de, #_s_tiles      
-    add hl,de
+    add hl, de
     
     ld d, h  ; de = pchar1
     ld e, l
@@ -228,7 +235,7 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     pop hl      
     inc hl
     
-    ;--------- *pchar2 =  s_tiles + tile_pairs[slot].b*8
+    ;--------- *pchar2 =  s_tiles + tile_pairs[slot].b*8   -- bc
     ld l, (hl)   ; get b
     ld h, a 
 
@@ -237,7 +244,7 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     add hl, hl
     
     ld bc, #_s_tiles    
-    add hl,bc
+    add hl, bc
     
     ld b, h  ; bc = pchar2    
     ld c, l
@@ -246,6 +253,7 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     pop hl     ; hl = dest
     
     COPY_0
+        
     SHIFT 1
     SHIFT 2
     SHIFT 3
@@ -342,6 +350,7 @@ void VDP_set_vram_dest_16K(u16 dest) __sdcccall(1)
 	__endasm;
 }
 
+
 void VDP_write_16K(u8 count, const u8* src) __sdcccall(1)
 {
 	src, count;
@@ -349,11 +358,32 @@ void VDP_write_16K(u8 count, const u8* src) __sdcccall(1)
 		//exit if count is 0
         or a
         jr z, vdp_write_wrt16_exit_loop 
+        ld		b, a				// count
         
 		ld		c, #P_VDP_DATA	      
         ex      de, hl
        
+        // Fast loop	        
+	write_wrt16_loop_start:
+		outi							// out(c) ; hl++ ; b--
+		jp		nz, write_wrt16_loop_start
         
+vdp_write_wrt16_exit_loop:
+
+	__endasm;
+}
+
+void VDP_write_16K_unrolled(u8 count, const u8* src) __sdcccall(1)
+{
+	src, count;
+	__asm
+		//exit if count is 0
+        or a
+        jr z, vdp_write_wrt16_exit_loop_unrolled 
+        
+		ld		c, #P_VDP_DATA	      
+        ex      de, hl
+       
         ld		d, a				// count
 
         // slow loop, individual outs	        
@@ -378,7 +408,7 @@ void VDP_write_16K(u8 count, const u8* src) __sdcccall(1)
         .endm
 		jp		nz, write_wrt16_loop_start_2
         
-vdp_write_wrt16_exit_loop:
+vdp_write_wrt16_exit_loop_unrolled:
 
 	__endasm;
 }
@@ -940,16 +970,16 @@ void scroll_level_meta(const unsigned char * level)
 
 void update_vram_names()
 {
-    VDP_set_vram_dest_16K(g_ScreenLayoutLow+32*6); //starts drawing at y=6 to center vertically things a bit
+    VDP_set_vram_dest_16K(g_ScreenLayoutLow+32*4); //starts drawing at y=4 to center vertically things a bit
     u8 *dest = g_table_names;
+    unsigned char n = ((u8)g_offset_h) & 31;
     for (u8 i = 0; i< NAME_ROWS;i++)
     {   
         #ifdef SAFE_SCROLL
         VDP_write_block_16K(32, dest);
-        #else
-        unsigned char n = ((u8)g_offset_h) & 31;
-        VDP_write_16K(32-n, dest + n);
-        VDP_write_16K(n   , dest + 0);
+        #else        
+        VDP_write_16K_unrolled(32-n, dest + n);
+        VDP_write_16K_unrolled(n   , dest + 0);
         #endif
         dest+=32;
     }
@@ -959,10 +989,10 @@ void update_vram_patterns()
 {
     VDP_set_vram_dest_16K(g_ScreenPatternLow + 8);
     #ifdef CACHE_ROTATIONS
-    VDP_write_block_16K(g_tile_pairs_size*8, rotated_tiles_cache[g_offset_l]);
+    VDP_write_16K_unrolled(g_tile_pairs_size*8, rotated_tiles_cache[g_offset_l]);
     #else
-    VDP_write_block_16K(g_tile_pairs_size*8, g_patterns);    
-    #endif
+    VDP_write_16K_unrolled(g_tile_pairs_size*8, g_patterns);    
+    #endif   
 }
 
 void update_all_frame()
@@ -1099,9 +1129,8 @@ void main()
 #ifndef CACHE_ROTATIONS    
     scroll_patterns();       
 #endif
-             
-        
         Halt();
+            
         update_vram_patterns();
         update_vram_names();    
         
@@ -1129,4 +1158,3 @@ void main()
         
    }
 }
-
