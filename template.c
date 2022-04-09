@@ -17,16 +17,27 @@
 
 #include "smb.h"
 
+// this two should not be disabled
 #define REALLOC_TILE_SLOTS
 #define TRACK_TILE_REF_COUNT
+
+// will generate and cache the 8 the rotated tiles in RAM, otherwise it will rotate the tiles every frame
 #define CACHE_ROTATIONS
+
+// if CACHE_ROTATIONS is enabled, will apply tile rotation speed up
 #define REUSE_PREVIOUS_ROT
+
+// if CACHE_ROTATIONS is enabled won't calc the 8 rotations in one go, it will rotate tiles as they are needed
+#define ROTATE_AS_NEEDED
 
 struct SEQ 
 { 
 #ifdef TRACK_TILE_REF_COUNT
     unsigned int ref;
 #endif    
+#ifdef ROTATE_AS_NEEDED
+    unsigned char rotation_cached;
+#endif        
     unsigned char a, b; 
 };
 
@@ -39,9 +50,12 @@ unsigned char *g_p_table_names = g_table_names;
 unsigned char g_offset_l=0;
 unsigned char g_offset_l_times_3=0;
 unsigned int  g_offset_h=0;
-
+#ifdef ROTATE_AS_NEEDED
+unsigned char g_offset_mask=0;
+#endif
 
 #ifdef CACHE_ROTATIONS
+
 unsigned char rotated_tiles_cache[8][8*PATTERN_SIZE];
 
 void rotate_blocks(unsigned char *pchar1, unsigned char *pchar2, unsigned char  *dptr, u8 offset)
@@ -212,8 +226,13 @@ void cache_rotations_generate_asm(u8 *tp, u8 *dest)  __sdcccall(1)
     xor a
     push de
     
+#ifdef TRACK_TILE_REF_COUNT
     inc hl  ; skip ref count
-    inc hl 
+    inc hl
+ #endif    
+#ifdef ROTATE_AS_NEEDED
+    inc hl  
+#endif   
     
     push hl
     
@@ -279,9 +298,271 @@ void cache_rotations_generate(u8 slot)
     cache_rotations_generate_asm((u8*)&tile_pairs[slot], &rotated_tiles_cache[0][slot*8]);
 #endif    
 }
+
+
+#ifdef ROTATE_AS_NEEDED
+unsigned char rotated_state[PATTERN_SIZE];
+
+void init_rotated_status(u8 i)
+{
+    tile_pairs[i].rotation_cached=0;
+}
+
+
+void rotate_pair(struct SEQ *tp, u8 *dest)  __sdcccall(1)
+{    
+    __asm
+
+    .macro scroll_SHIFT amount
+        .rept 8            
+            ld a,(de)
+            inc de
+
+            push de
+            
+            .rept amount
+            add a
+            .endm  
+            
+            ld d,a
+
+            ld a,(bc)    
+            inc bc
+            
+            .rept 8 - amount
+            rrca
+            .endm  
+            and #0x0 + ((1<<(amount))-1)
+            
+            or d
+            
+            pop de 
+            
+            ld (hl),a    
+            inc hl
+        .endm  
+    .endm  
+
+
+    ; hl has *tp
+    ; de has *dest
+    xor a
+    push de
+    
+#ifdef TRACK_TILE_REF_COUNT
+    inc hl  ; skip ref count
+    inc hl
+ #endif    
+#ifdef ROTATE_AS_NEEDED
+    inc hl  
+#endif    
+    push hl
+    
+    ;---------  *pchar1 =  s_tiles + tile_pairs[slot].a*8   --> de
+    ld l, (hl)   ; get a
+    ld h, a 
+
+    add hl, hl   ; * 8
+    add hl, hl
+    add hl, hl
+    
+    ld de, #_s_tiles      
+    add hl, de
+    
+    ld d, h  ; de = pchar1
+    ld e, l
+    ;---------
+
+    pop hl      
+    inc hl
+    
+    ;--------- *pchar2 =  s_tiles + tile_pairs[slot].b*8   -- bc
+    ld l, (hl)   ; get b
+    ld h, a 
+
+    add hl, hl   ; * 8
+    add hl, hl
+    add hl, hl
+    
+    ld bc, #_s_tiles    
+    add hl, bc
+    
+    ld b, h  ; bc = pchar2    
+    ld c, l
+    ;---------
+    
+    pop hl     ; hl = dest
+    
+    ; jump table ---------------------------
+     
+    push hl
+    
+    ld hl, #scroll_nexty
+    
+    ld a, (#_g_offset_l_times_3)
+    
+    add a,l
+    ld l,a
+    adc a,h
+    sub l
+    ld h,a       
+    
+    jp (hl)
+
+scroll_nexty:    
+    jp scroll_shift_0
+    jp scroll_shift_1
+    jp scroll_shift_2
+    jp scroll_shift_3
+    jp scroll_shift_4
+    jp scroll_shift_5
+    jp scroll_shift_6
+    jp scroll_shift_7
+scroll_shift_0:
+    pop hl
+    scroll_SHIFT 0
+    jp scroll_done
+scroll_shift_1:
+    pop hl
+    scroll_SHIFT 1
+    jp scroll_done
+scroll_shift_2:
+    pop hl
+    scroll_SHIFT 2
+    jp scroll_done
+scroll_shift_3:
+    pop hl
+    scroll_SHIFT 3
+    jp scroll_done
+scroll_shift_4:
+    pop hl
+    scroll_SHIFT 4
+    jp scroll_done
+scroll_shift_5:
+    pop hl
+    scroll_SHIFT 5
+    jp scroll_done
+scroll_shift_6:
+    pop hl
+    scroll_SHIFT 6
+    jp scroll_done
+scroll_shift_7:
+    pop hl
+    scroll_SHIFT 7
+    jp scroll_done    
+scroll_done:    
+        
+    __endasm; 
+}
+
+
+void rotate_pairs_as_needed_and_cache()
+{
+#if USE_ASM == 0
+
+    u8 *dest = rotated_tiles_cache[g_offset_l];
+
+    for(u8 i=0;i<g_tile_pairs_size;i++)
+    {
+        if (tile_pairs[i].ref == 0)
+            continue;
+    
+        if ((tile_pairs[i].rotation_cached & g_offset_mask)==0)
+        {
+            tile_pairs[i].rotation_cached |= g_offset_mask;
+            
+            rotate_pair((u8 *)&tile_pairs[i], &dest[i*8]);
+        }
+    }
 #else
-unsigned char g_patterns[8*PATTERN_SIZE];
+    __asm    
+    
+        ; ---- u8 *dest = rotated_tiles_cache[g_offset_l]; ---> de
+        ld hl, #_rotated_tiles_cache
+        ld de, #0x8*PATTERN_SIZE
+        ld a, (#_g_offset_l)
+        or a
+        jr z, loope_adder_0
+        ld b,a
+loope_adder:    
+        add hl,de    
+        djnz loope_adder
+loope_adder_0:    
+        ex de, hl
+    
+    ; loop
+
+        ld a, (#_g_tile_pairs_size)
+        or a
+        jr z,notfound 
+        
+        ld hl, #_tile_pairs
+
+        ld b, a            
+looper:        
+        push bc
+        ; hl has *tp
+        ; de has *dest
+
+        push hl
+        
+#ifdef TRACK_TILE_REF_COUNT
+        inc hl  ; skip ref count
+        inc hl
+ #endif    
+#ifdef ROTATE_AS_NEEDED
+        ; check if bit signals we have the rotated tile
+        
+        ld a, (#_g_offset_mask)
+        ld c, a
+        ld a, (hl)
+        and c
+        jr nz, looper_next
+        
+        ; set bit as we are now going to compute the rotated tile
+        ld a, (hl)
+        or c
+        ld (hl), a
+#endif           
+        pop hl
+        
+        push hl
+        
+        push de
+        call #_rotate_pair
+        pop de
+        
+        
+        
+looper_next:
+        pop hl
+        
+        inc hl
+        inc hl
+        inc hl
+        inc hl
+        inc hl
+  
+        ld a, #0x8
+        add   a, e    ; A = A+L
+        ld    e, a    ; L = A+L
+        adc   a, d    ; A = A+L+H+carry
+        sub   e       ; A = H+carry
+        ld    d, a    ; H = H+carry
+        
+        pop bc
+        djnz looper
+        
+notfound:        
+    __endasm; 
 #endif
+}
+#endif
+
+
+#else  //CACHE_ROTATIONS
+unsigned char g_patterns[8*PATTERN_SIZE];
+#endif // CACHE_ROTATIONS
 
 #ifdef REALLOC_TILE_SLOTS
 unsigned char tile_allocated_size=0;
@@ -318,6 +599,11 @@ void set_offset(unsigned int offset)
 {
     g_offset_h = offset / 8;
     g_offset_l = (offset & 7);
+    
+#ifdef ROTATE_AS_NEEDED
+    g_offset_mask= 1<<g_offset_l;
+#endif
+    
 #if USE_ASM == 1
     g_offset_l_times_3 = (offset & 7)*3;
 #endif    
@@ -373,47 +659,6 @@ vdp_write_wrt16_exit_loop:
 	__endasm;
 }
 
-void VDP_write_16K_unrolled(u8 count, const u8* src) __sdcccall(1)
-{
-	src, count;
-	__asm
-		//exit if count is 0
-        or a
-        jr z, vdp_write_wrt16_exit_loop_unrolled 
-        
-		ld		c, #P_VDP_DATA	      
-        ex      de, hl
-       
-        ld		d, a				// count
-
-        // slow loop, individual outs	        
-        and		a, #0x07 
-        jr		z, write_wrt16_loop_start_unrolled
-        ld		b,a
-    write_wrt16_loop_start_1:        
-        outi							// out(c) ; hl++ ; b--
-        jp		nz, write_wrt16_loop_start_1
-    
-    write_wrt16_loop_start_unrolled:
-        
-        ld		a, d
-        
-        // fast loop, outs unrolled in blocks of 8	        
-        and		a, #0xf8 
-        jr		z, vdp_write_wrt16_exit_loop
-        ld		b,a        
-	write_wrt16_loop_start_2:
-        .rept 8            
-		outi							// out(c) ; hl++ ; b--
-        .endm
-		jp		nz, write_wrt16_loop_start_2
-        
-vdp_write_wrt16_exit_loop_unrolled:
-
-	__endasm;
-}
-
-
 void VDP_write_block_16K(u8 count, const u8* src) __sdcccall(1)
 {
 	src, count;
@@ -449,8 +694,10 @@ void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
 #ifdef REALLOC_TILE_SLOTS    
     for(;i<g_tile_pairs_size;i++)
     {
+        #ifdef TRACK_TILE_REF_COUNT
         if (tile_pairs[i].ref == 0)
             continue;
+        #endif    
             
         if ((a==tile_pairs[i].a) && (b==tile_pairs[i].b))
         {                     
@@ -491,7 +738,13 @@ void track_tile_pairs(unsigned char a, unsigned char b) __sdcccall(1)
     tile_pairs[i].b=b;
     
 #ifdef CACHE_ROTATIONS    
+    #ifdef ROTATE_AS_NEEDED
+    //init cache so rotations get generated as needed
+    init_rotated_status(i);
+    #else
+    // generate all rotated tiles
     cache_rotations_generate(i);
+    #endif
 #endif        
     
 foundit:    
@@ -609,7 +862,7 @@ void scroll_single_tile(unsigned char p1, unsigned char p2, unsigned char  dest)
             push de
             
             .rept amount
-            sla a
+            add a
             .endm  
             
             ld d,a
@@ -870,6 +1123,10 @@ loopa1:
     ;-------------------- ref
 #ifdef TRACK_TILE_REF_COUNT    
     inc hl      
+    inc hl
+#endif    
+#ifdef ROTATE_AS_NEEDED
+    inc hl
 #endif    
         
     ;-------------------- p1: de = _s_tiles[tile_pairs[i].a*8];   //TODO: Use 16 bit math as otherwise corruption happens when there are more than 32 scrolling tiles
@@ -978,8 +1235,8 @@ void update_vram_names()
         #ifdef SAFE_SCROLL
         VDP_write_block_16K(32, dest);
         #else        
-        VDP_write_16K_unrolled(32-n, dest + n);
-        VDP_write_16K_unrolled(n   , dest + 0);
+        VDP_write_16K(32-n, dest + n);
+        VDP_write_16K(n   , dest + 0);
         #endif
         dest+=32;
     }
@@ -989,9 +1246,9 @@ void update_vram_patterns()
 {
     VDP_set_vram_dest_16K(g_ScreenPatternLow + 8);
     #ifdef CACHE_ROTATIONS
-    VDP_write_16K_unrolled(g_tile_pairs_size*8, rotated_tiles_cache[g_offset_l]);
+    VDP_write_16K(g_tile_pairs_size*8, rotated_tiles_cache[g_offset_l]);
     #else
-    VDP_write_16K_unrolled(g_tile_pairs_size*8, g_patterns);    
+    VDP_write_16K(g_tile_pairs_size*8, g_patterns);    
     #endif   
 }
 
@@ -1004,7 +1261,9 @@ void update_all_frame()
     {       
         scroll_level_meta(s_levels[i]);
     }
-#ifndef CACHE_ROTATIONS    
+    
+#ifdef CACHE_ROTATIONS    
+#else
     scroll_patterns();       
 #endif
 
@@ -1126,9 +1385,14 @@ void main()
             show_debug=!show_debug;
         }
         
-#ifndef CACHE_ROTATIONS    
-    scroll_patterns();       
+#ifdef CACHE_ROTATIONS    
+    #ifdef ROTATE_AS_NEEDED
+        rotate_pairs_as_needed_and_cache();
+    #endif
+#else
+        scroll_patterns();       
 #endif
+
         Halt();
             
         update_vram_patterns();
@@ -1158,3 +1422,4 @@ void main()
         
    }
 }
+
