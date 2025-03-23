@@ -2,7 +2,7 @@
 
 ## Description
 
-Tech demo to see how far can I get a smooth scroll on the MSX 1. 
+Tech demo to see how far can I get a 60 FPS smooth scroll on the MSX 1. 
 
 As a kid, I hated the blocky scrolling of MSX1 games and envied the Spectrum’s smooth scroll. Now, I’m determined to see if I can push the MSX1 to achieve the smoothness I once admired so much.
 
@@ -15,9 +15,11 @@ There are two online demos:
 ### Precalculated demo
 
 - No ASM, just unoptimized C code.
-- Fixed point math for the physics
-  - 8.8 for the Y axis
-  - 24.8 for the X axis 
+- Physics
+  - Acceleration, squids, friction
+  - Fixed point math
+    - 8.8 for the Y axis
+    - 24.8 for the X axis 
 - A python script takes care of precalculating as much as possible:
   - Compiles the level, replaces each character with it's 16x16 pattern. Some patterns are taken from a png image of a spectrum port.
   - Computes the pairs of adjacent unique tiles
