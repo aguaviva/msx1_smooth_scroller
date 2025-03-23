@@ -185,16 +185,23 @@ def generate_level(level, transparents, solids):
 
     d = rotate_tiles(definitions, pairs)
 
-    print("#define PATTERN_COUNT", len(d.keys()))
+    #no need to rotate blank-blank pair
+    blank_index = mapping[list(definitions.keys()).index(" ")]
+    del d[(blank_index, blank_index)] 
 
-    print("unsigned char patterns[] ={")
+    print("#define PATTERN_COUNT", len(d.keys()))
+    #print(f"unsigned char patterns[] = {{")
     for i in range(8):
         print(f"// offset {i}")
+        print(f"unsigned char pattern_{i}[PATTERN_COUNT * 8] = {{")
         for k,v in d.items():
             a,b = k
             s = ",".join(["0x%02x" % k for k in v[i]])
             print(f"{s}, // {a}_{b}")
-    print("};") 
+        print("};") 
+    #print("};") 
+    
+    print("unsigned char *pPatterns[8] = {", ",".join([f" pattern_{i}" for i in range(8)]), "};\n")
 
 
 ##### Sprites

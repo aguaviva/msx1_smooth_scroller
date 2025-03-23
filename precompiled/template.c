@@ -76,7 +76,8 @@ enum State {
 
 #define OFFSET_X 10
 #define OFFSET_Y 8
-//#define DEBUG
+#define DEBUG
+#define PROFILER
 //=============================================================================
 // MAIN LOOPy
 //=============================================================================
@@ -92,6 +93,7 @@ void main()
     VDP_RegWrite(0x01,0xe2); //big srpites
     
     Print_SetTextFont(PRINT_DEFAULT_FONT, 1);
+    VDP_FillVRAM_16K(0xf1, g_ScreenColorLow, 32*24); // black & white
         
     i16 offset = 0;
     signed char offset8 = 0;
@@ -179,25 +181,45 @@ void main()
             }
         }
 
+        #ifdef PROFILER
+        VDP_SetColor(0x00); // transparent
+        #endif
+
         Halt();
 
-        // update VRAM //////////////////////////////
+        #ifdef PROFILER
+        VDP_SetColor(0x04); //dark blue
+        #endif
 
-        VDP_WriteVRAM_16K(&patterns[8+PATTERN_COUNT*8*(offset&0x7)], g_ScreenPatternLow+8, 8*(PATTERN_COUNT-1));
-    
-        VDP_set_vram_dest_16K(g_ScreenLayoutLow+(OFFSET_Y)*32);
+        // update VRAM //////////////////////////////
+        VDP_WriteVRAM_16K(pPatterns[offset&0x7], g_ScreenPatternLow + 8, 8*PATTERN_COUNT);
+
+        #ifdef PROFILER
+        VDP_SetColor(0x06); // dark red
+        #endif    
+
+        VDP_set_vram_dest_16K(g_ScreenLayoutLow + (OFFSET_Y*32));
         for(u8 y=0;y<LEVEL_HEIGHT;y++)
         {
             VDP_write_16K(32, &level[y][(offset)>>3]);
         }        
 
+        #ifdef PROFILER
+        VDP_SetColor(0x07); // light blue
+        #endif
+
         VDP_WriteVRAM_16K((u8*)sp, g_SpriteAttributeLow, 4);        
+
+        #ifdef PROFILER
+        VDP_SetColor(0x12); // dark green
+        #endif
+
 
 #ifdef DEBUG
     if(Keyboard_IsKeyPressed(KEY_RIGHT))
-        posX++;
+        posX+=256;
     if(Keyboard_IsKeyPressed(KEY_LEFT))
-        posX--;
+        posX-=256;
 #else
         // phyiscs ///////////////////////////////
 
