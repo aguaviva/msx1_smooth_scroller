@@ -111,7 +111,7 @@ def generate_sprite(sp, idx):
     return join_hex(o)
 
 def usingned_char(name, data):
-    print(f"unsigned char {name}[]=","{")
+    print(f"const unsigned char {name}[]=","{")
     print(data)
     print("};")
 
@@ -160,12 +160,14 @@ def generate_level(level, transparents, solids):
         level_pairs.append([pairs[i] for i in list(zip(s[:-1],s[1:]))])
 
 
-    print(f"unsigned char level[LEVEL_HEIGHT][LEVEL_WIDTH] = ")
+    print(f"const unsigned char level[LEVEL_HEIGHT][LEVEL_WIDTH] = ")
     print("{")
     for s in level_pairs:
         print("{", ",".join(["%2i" % i for i in s]), "},")
     print("};")    
     print() 
+
+    #print(f"const unsigned char *levelY[LEVEL_HEIGHT] = {{",",".join([f" level[{i}]" for i in range(len(level_mapped))]), "};")
 
     print("// tiles to upload at each offset")
     for i in range(0,len(level_pairs[0]),8):
@@ -193,7 +195,7 @@ def generate_level(level, transparents, solids):
     #print(f"unsigned char patterns[] = {{")
     for i in range(8):
         print(f"// offset {i}")
-        print(f"unsigned char pattern_{i}[PATTERN_COUNT * 8] = {{")
+        print(f"const unsigned char pattern_{i}[PATTERN_COUNT * 8] = {{")
         for k,v in d.items():
             a,b = k
             s = ",".join(["0x%02x" % k for k in v[i]])
@@ -201,7 +203,7 @@ def generate_level(level, transparents, solids):
         print("};") 
     #print("};") 
     
-    print("unsigned char *pPatterns[8] = {", ",".join([f" pattern_{i}" for i in range(8)]), "};\n")
+    print("const unsigned char *pPatterns[8] = {", ",".join([f" pattern_{i}" for i in range(8)]), "};\n")
 
 
 ##### Sprites

@@ -76,7 +76,7 @@ enum State {
 
 #define OFFSET_X 10
 #define OFFSET_Y 8
-#define DEBUG
+//#define DEBUG
 #define PROFILER
 //=============================================================================
 // MAIN LOOPy
@@ -198,10 +198,15 @@ void main()
         VDP_SetColor(0x06); // dark red
         #endif    
 
-        VDP_set_vram_dest_16K(g_ScreenLayoutLow + (OFFSET_Y*32));
-        for(u8 y=0;y<LEVEL_HEIGHT;y++)
         {
-            VDP_write_16K(32, &level[y][(offset)>>3]);
+            // copy name table
+            VDP_set_vram_dest_16K(g_ScreenLayoutLow + (OFFSET_Y*32));
+            const u8 *pLevel2 = &level[0][offset>>3];
+            for(u8 y=0;y<LEVEL_HEIGHT;y++)
+            {
+                VDP_write_16K(32, pLevel2);
+                pLevel2 += LEVEL_WIDTH; // use simpler pointer arithmetic
+            }
         }        
 
         #ifdef PROFILER
@@ -254,7 +259,7 @@ void main()
         velY += 14;
 
         // jump force
-        if(Keyboard_IsKeyPressed(KEY_UP))
+        if (Keyboard_IsKeyPressed(KEY_UP))
         {
             if (state!=air)
             {
@@ -286,13 +291,13 @@ void main()
             continue;
 
         // feet hitting ground?
-        u8 *pDown = level[((posY>>8)>>3)+2];
+        const u8 *pDown = level[((posY>>8)>>3)+2];
         state = (
                     solid[pDown[(((posX + ( 4<<8))>>8)>>3)]] ||
                     solid[pDown[(((posX + (12<<8))>>8)>>3)]]
                 )
                 ? ground : air;
-
+        
         if (velY>0)
         {
             if (state==ground)
@@ -308,7 +313,7 @@ void main()
 
         if (velY<0) // hitting ceiling
         {
-            u8 *pTop = level[((posY>>8)>>3)];
+            const u8 *pTop = level[((posY>>8)>>3)];
             if (
                     solid[pTop[(((posX + ( 4<<8))>>8)>>3)]] ||
                     solid[pTop[(((posX + (12<<8))>>8)>>3)]] 
@@ -319,7 +324,7 @@ void main()
             }
         }
 
-        u8 *pLevel = level[((posY>>8)>>3)+1];
+        const u8 *pLevel = level[((posY>>8)>>3)+1];
         
         // right side
         {
