@@ -214,7 +214,24 @@ pole = [
 	"0000000110000000",  
 ]    
 
-
+brick = [    
+	"1111111111111111",
+	"0001000000010000",
+	"0001000000010000",
+	"0001000000010000",
+	"1111111111111111",
+	"0000000100000001",
+	"0000000100000001",
+	"0000000100000001",
+	"1111111111111111",
+	"0001000000010000",
+	"0001000000010000",
+	"0001000000010000",
+	"1111111111111111",
+	"0000000100000001",
+	"0000000100000001",
+	"0000000100000001",    
+]
 im_frame = Image.open('smb.png')
 np_frame_org = np.array(im_frame)
 
@@ -243,7 +260,7 @@ nube2 = get_block(np_frame, 1, 2)
 nube3 = get_block(np_frame, 2, 2) 
 
 block = get_block(np_frame, 0, 1) 
-brick = get_block(np_frame, 1, 0) 
+#brick = get_block(np_frame, 1, 0) 
 stones = get_block(np_frame, 0, 0)
 q_mark = get_block(np_frame, 2,0)
 coin = get_block(np_frame, 3,1)  
@@ -277,10 +294,10 @@ transparents = {
 
 
 level = [
-    "                         ?                                                                   ###########   ###?             ?                                 ",
+    "                         ?                                                                   ===========   ===?             ?                                 ",
     "#                                                                                                                                                             ",
     "#                                                                                                                                          X      |      =    ",
-    "#                   ?  #?#?#                          qw             qw                   ###                 #     ##   ?  ?  ?          XX      |     ===   ",
+    "#                   ?  #?#?#                          qw             qw                   ===                 =     ==   ?  ?  ?          XX      |     ===   ",
     "#    ^                                       qw       as   ^         as                                           ^                      XXX      |    =====  ",
     "#   [o]              ^              qw       as       as  [o]        as         ^                                [o]             ^      XXXX      |    == ==  ",
     "#  [o  ]      errrt [o]     ert     as       as  ert  as [o  ]       as  errt  [o]     ert                      [o  ]     errt  [o]    XXXXX      X    == ==  ",                                  
