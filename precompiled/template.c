@@ -78,6 +78,40 @@ enum State {
 #define OFFSET_Y 8
 //#define DEBUG
 #define PROFILER
+
+void update_name_table(const unsigned char *pLevel)
+{
+    // copy name table
+    for(u8 y=0;y<LEVEL_HEIGHT;y++)
+    {
+        VDP_write_16K(32, pLevel);
+        pLevel += LEVEL_WIDTH; // use simpler pointer arithmetic
+    }
+} 
+
+void update_name_table_asm(const u8 *level) 
+{
+	level;
+	__asm
+		ld		c, #P_VDP_DATA	      
+        ld      b, #LEVEL_HEIGHT
+        ld      de, #LEVEL_WIDTH-32
+    write_y:        
+        push    bc
+       
+        // Fast loop	        
+        ld		b, #32				    // screen width
+	write_wrt16_loop_start2:
+		outi							// out(c) ; hl++ ; b--
+		jp		nz, write_wrt16_loop_start2
+
+        add     hl, de
+        pop bc
+        djnz   write_y        
+       
+	__endasm;
+}
+
 //=============================================================================
 // MAIN LOOPy
 //=============================================================================
@@ -113,6 +147,9 @@ void main()
     i16 posY=(0*8)<<8;
     u8 jump=0;
     i16 seq=0;
+
+    const u16 ScreenPatternLow = g_ScreenPatternLow;
+
     for(;;)
     {
         // scroll or move ///////////////////////
@@ -192,22 +229,14 @@ void main()
         #endif
 
         // update VRAM //////////////////////////////
-        VDP_WriteVRAM_16K(pPatterns[offset&0x7], g_ScreenPatternLow + 8, 8*PATTERN_COUNT);
+        VDP_WriteVRAM_16K(pPatterns[offset&0x7], ScreenPatternLow + 8, 8*PATTERN_COUNT);
 
         #ifdef PROFILER
         VDP_SetColor(0x06); // dark red
         #endif    
 
-        {
-            // copy name table
-            VDP_set_vram_dest_16K(g_ScreenLayoutLow + (OFFSET_Y*32));
-            const u8 *pLevel2 = &level[0][offset>>3];
-            for(u8 y=0;y<LEVEL_HEIGHT;y++)
-            {
-                VDP_write_16K(32, pLevel2);
-                pLevel2 += LEVEL_WIDTH; // use simpler pointer arithmetic
-            }
-        }        
+        VDP_set_vram_dest_16K(g_ScreenLayoutLow + (OFFSET_Y*32));
+        update_name_table_asm(&level[0][offset>>3]);       
 
         #ifdef PROFILER
         VDP_SetColor(0x07); // light blue
